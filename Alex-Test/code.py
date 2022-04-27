@@ -4,25 +4,13 @@
 # Forked from https://github.com/dbisu/pico-ducky
 
 # import libraries
-import adafruit_binascii as binascii
-import adafruit_displayio_sh1106
-import adafruit_requests
-import adafruit_requests as requests
-import adafruit_framebuf
-import ampule
-import base64
 import board
 import busio
 import displayio
-import ipaddress
-import neopixel
 import os
-import socketpool
-import ssl
 import terminalio
 import time
 import usb_hid
-import wifi
 from adafruit_debouncer import Debouncer
 from adafruit_display_text import label
 from adafruit_display_shapes.line import Line
@@ -54,8 +42,8 @@ color = 0xFFFFFF
 
 # configure button input
 pins = (board.IO9, board.IO18, board.IO11, board.IO7)
-buttons = []       # will hold list of Debouncer objects
-for pin in pins:   # set up each pin
+buttons = []  # will hold list of Debouncer objects
+for pin in pins:  # set up each pin
     tmp_pin = DigitalInOut(pin)  # defaults to input
     tmp_pin.pull = Pull.UP  # turn on internal pull-up resistor
     buttons.append(Debouncer(tmp_pin))
@@ -95,16 +83,16 @@ def drawNavMap(map_vals):
 
     # iterate text values and add to screen
     for i in map_vals[:4]:
-        text_area = label.Label(font, text=map[counter]+": "+i, color=color)
+        text_area = label.Label(font, text=map[counter] + ": " + i, color=color)
         text_area.x = 2
-        text_area.y = 3+(10*counter)
+        text_area.y = 3 + (10 * counter)
         counter += 1
         navScreen.append(text_area)
 
     # draw stuff
     navScreen.append(Line(0, 50, 127, 50, 0xFFFFFF))
     navScreen.append(Line(0, 51, 127, 51, 0xFFFFFF))
-    text_area = label.Label(font, text="Dir: " + path[path.rfind("/")+1:], color=color)
+    text_area = label.Label(font, text="Dir: " + path[path.rfind("/") + 1:], color=color)
     text_area.x = 2
     text_area.y = 57
     navScreen.append(text_area)
@@ -112,15 +100,15 @@ def drawNavMap(map_vals):
 
     # update path until text file reached
     currButton = -1
-    while (currButton == -1):
+    while currButton == -1:
         currButton = getButtonPressed()
-    if("Back" in map_vals and currButton == 1):
+    if "Back" in map_vals and currButton == 1:
         path = path[0:path.rfind("/")]
-    elif (map_vals[currButton] == ""):
+    elif map_vals[currButton] == "":
         pass
-    else :
-        path += "/"+map_vals[currButton]
-    if (".txt" in path):
+    else:
+        path += "/" + map_vals[currButton]
+    if ".txt" in path:
         runPayload(path)
         path = path[0:path.rfind("/")]
         path = path[0:path.rfind("/")]
@@ -129,10 +117,9 @@ def drawNavMap(map_vals):
 # draw and execute payload
 
 def drawPayload(status, payloadName):
-
     # draw Nugget to indicate status!
 
-    if (status == "START"):
+    if status == "START":
         statusText = "executing"
         bitmap = displayio.OnDiskBitmap("/faces/payload-running.bmp")
     else:
@@ -148,14 +135,14 @@ def drawPayload(status, payloadName):
     group.append(Line(0, 11, 129, 11, 0xFFFFFF))
     group.append(Line(0, 12, 129, 12, 0xFFFFFF))
 
-    text = ("STATUS: "+statusText)
+    text = ("STATUS: " + statusText)
     text_area = label.Label(font, text=text, color=color)
     text_area.x = 2
     text_area.y = 57
     group.append(text_area)
-    text = (payloadName[path.rfind("/")+1:])
-    if(len(text) > 21):
-        text = text[:18]+"..."
+    text = (payloadName[path.rfind("/") + 1:])
+    if len(text) > 21:
+        text = text[:18] + "..."
 
     text_area = label.Label(font, text=text, color=color)
     text_area.x = 2
@@ -163,6 +150,7 @@ def drawPayload(status, payloadName):
     group.append(text_area)
     display.show(group)
     time.sleep(3)
+
 
 # duckyscript command map
 
@@ -193,6 +181,7 @@ duckyCommands = {
     'F12': Keycode.F12,
 }
 
+
 # ducky parser by @dbisu
 
 def convertLine(line):
@@ -215,30 +204,34 @@ def convertLine(line):
     print(newline)
     return newline
 
+
 def runScriptLine(line):
     for k in line:
         kbd.press(k)
     kbd.release_all()
 
+
 def sendString(line):
     layout.write(line)
 
+
 def parseLine(line):
     global defaultDelay
-    if(line[0:3] == "REM"):
+    if line[0:3] == "REM":
         # ignore ducky script comments
         pass
-    elif(line[0:5] == "DELAY"):
-        time.sleep(float(line[6:])/1000)
-    elif(line[0:6] == "STRING"):
+    elif line[0:5] == "DELAY":
+        time.sleep(float(line[6:]) / 1000)
+    elif line[0:6] == "STRING":
         sendString(line[7:])
-    elif(line[0:13] == "DEFAULT_DELAY"):
+    elif line[0:13] == "DEFAULT_DELAY":
         defaultDelay = int(line[14:]) * 10
-    elif(line[0:12] == "DEFAULTDELAY"):
+    elif line[0:12] == "DEFAULTDELAY":
         defaultDelay = int(line[13:]) * 10
     else:
         newScriptLine = convertLine(line)
         runScriptLine(newScriptLine)
+
 
 # payload run function
 
@@ -251,30 +244,47 @@ def runPayload(payloadPath):
     for line in duckyScript:
         print(line)
         line = line.rstrip()
-        if(line[0:6] == "REPEAT"):
+        if line[0:6] == "REPEAT":
             for i in range(int(line[7:])):
                 # repeat the last command
                 parseLine(previousLine)
-                time.sleep(float(defaultDelay)/1000)
+                time.sleep(float(defaultDelay) / 1000)
         else:
             parseLine(line)
             previousLine = line
-        time.sleep(float(defaultDelay)/1000)
+        time.sleep(float(defaultDelay) / 1000)
 
     # finish indicator
     drawPayload("STOP", payloadPath)
     time.sleep(.5)
 
+
 # create default directories
 
 default_os = ["Windows", "Starred", "Mac", "Linux"]
 for os_name in default_os:
-    if (os_name not in (os.listdir("payloads"))):
+    if os_name not in (os.listdir("payloads")):
         os.mkdir(os_name)
 
 while True:
     # check for root payload directory
-    if (path != "payloads"):
+    if path != "payloads":
         drawNavMap(os.listdir(path)[:3])  # take first 3 items from list
     else:
         drawNavMap(os.listdir(path))
+
+# Unused imports
+# Import them if you need them?
+
+# import ipaddress
+# import neopixel
+# import socketpool
+# import wifi
+# import ampule
+# import base64
+# import adafruit_binascii as binascii
+# import adafruit_displayio_sh1106
+# import adafruit_requests
+# import adafruit_requests as requests
+# import ssl
+# import adafruit_framebuf
